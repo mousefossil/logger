@@ -1,4 +1,4 @@
-Mouse's Logger
+**Mouse's Logger**
 ==============
 _A Lua library to replace the `log()` function in [Advanced Macros](https://github.com/AdvancedMacros/AdvancedMacros) with a seperate GUI from the Minecraft chat._
 
