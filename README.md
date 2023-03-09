@@ -1,21 +1,21 @@
 **Mouse's Logger**
 ==============
-_A Lua library to replace the `log()` function in [Advanced Macros](https://github.com/AdvancedMacros/AdvancedMacros) with a seperate GUI from the Minecraft chat._
+_A Lua library to replace the `log(...)` function in [Advanced Macros](https://github.com/AdvancedMacros/AdvancedMacros) with a seperate GUI from the Minecraft chat._
 
 # Features
-* Call logger.log() exactly like log() (you can even set `log = logger.log` in the beginning of your file)
-* Configurable
-    * Fixed width mode with line-wrap and adaptive width mode without line-wrap
+* Call `logger.log(...)` exactly like `log(...)` (you can even set `log = logger.log` in the beginning of your file)
+* Configurable (see top of logger.lua)
+    * Fixed width with line-wrap or adaptive width without line-wrap
     * Position
     * Number of lines
     * Colors
     * Scroll speed
     * etc.
-* logger.warn(), logger.error()
+* `logger.warn(...)`, `logger.error(...)`
 * logger.logEntering(), logger.logExiting() (for when you want to log that entered/exited a script), 
-* Table pretty print
+* Pretty table printing
 * Full color/textface support
-* Fast (100 logger.log() calls in 36 ms)
+* Fast (100 logger.log(...) calls in 36 ms)
 * Save logs to local files
 
 # How to use
