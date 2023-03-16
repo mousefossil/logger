@@ -1,9 +1,10 @@
-require"./logger"
-require"./sstring"
+require "logger"
+require "sstring"
 
 --require this file and run demo() or perf()
 
-function demo()
+
+function demo1()
   logger.clear()
   logger.logEntering()
   logger.logTime("&8@")
@@ -58,6 +59,58 @@ function demo()
   
   logger.logExiting()
   logger.error("Error after exiting? That's strange! but num = ", 5, " ", false, " = bad ", {4, 5, 6})
+end
+
+function demo2()
+  logger.clear()
+  MyClass = newClass"MyClass"
+  local _new = MyClass.new
+  function MyClass:new(boo, num, str, tab)
+    local obj = _new( self )
+    obj.boo, obj.num, obj.str, obj.tab = boo, num, str, tab
+    getmetatable(obj).__tostring = function()
+        local this_fun = getmetatable(obj).__tostring
+        getmetatable(obj).__tostring = nil
+        local id = tostring(obj):sub(8)
+        getmetatable(obj).__tostring = this_fun
+        return "&eMyClass "..id..":"..
+          "\n  &cboo &f= &b"..tostring(obj.boo)..
+          "\n  &cnum &f= &b"..tostring(obj.num)..
+          "\n  &cstr &f= &b"..tostring(obj.str)..
+          "\n  &ctab &f= &b"..tostring(obj.tab)
+    end
+    return obj
+  end
+
+local dumfun = function (a, b)
+    return a + b
+end
+
+my_obj = MyClass:new(true, 42, "bonk", {"b", "c", "c"})
+
+a = {
+    [true]= false,
+    ["  &6formatted_string"] = "&6&BSPACES IN THE KEY! UNBELIEVABLE.",
+    [100] = 42,
+    [{1, 2, 3}] = {
+        "&5go",
+        "work",
+        "&c&Bsleep",
+        true,
+        999
+    },
+    dinos = {
+        big = "trex",
+        fly = "ptero",
+        dino_good = true,
+        num_dinos = 987645
+    },
+    [dumfun] = dumfun,
+    [logger] = logger,
+    [my_obj] = my_obj,
+  }
+
+  logger.log(a)
 end
 
 function perf()

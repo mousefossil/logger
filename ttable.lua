@@ -1,8 +1,22 @@
 require"sstring"
 
 ttable = {}
-local INDENT_SIZ = 4
+local BASE_PREFIX = "⎹   "  -- default = "⎹   " // what to indent ttable.toStr with
+local KEY_COL = "&b"        -- default = "&b"   // color of keys in ttable.toStr
+local VAL_COL = "&e"        -- default = "&e"   // color of values in ttable.toStr
+local TYPE_FORMAT = "&B"    -- default = "&B" // format for `table`, `function`, `MyClass` in ttable.toStr
 
+-- Note: table is array if keys = 1, 2, 3, ..., N
+function ttable.isArray(t)
+    local i = 0
+    for _ in pairs(t) do
+      i = i + 1
+      if t[i] == nil then return false end
+    end
+    return true
+end
+
+-- Note: use the faster `#my_table` for arrays
 function ttable.len(t)
     local res = 0
     for k, _ in pairs(t) do
@@ -11,11 +25,15 @@ function ttable.len(t)
     return res
 end
 
-function ttable.contains(list, x)
-    for _, v in pairs(list) do
+function ttable.containsVal(t, x)
+    for _, v in pairs(t) do
         if v == x then return true end
     end
     return false
+end
+
+function ttable.containsKey(t, x)
+    return t[x] ~= nil
 end
 
 function ttable.deepCopy(orig)
@@ -33,63 +51,84 @@ function ttable.deepCopy(orig)
     return copy
 end
 
+-- recursively compares table contents
+function ttable.equalContent(one, two)
+    if type(one) ~= type(two) then return false end
 
+    if one == two then return true end
 
-function ttable.equals(one, two)
-    if type(one) ~= "table" or type(two) ~= "table" then return false end
-    if #one ~= #two then return false end
-    for i, v in ipairs(one) do
-        if two[i] ~= v then log(i, ", ", v); return false end
+    if ttable.len(one) ~= ttable.len(two) then return false end
+
+    for k, v in pairs(one) do
+        if type(v) == "table" then
+            if not ttable.equalContent(v, two[k]) then return false end
+        else
+            if two[k] ~= v then return false end
+        end
     end
     return true
 end
 
+-- table to pretty print
 function ttable.tostr(t, prefix)
-    if prefix == nil then prefix = "" end
-    
-    if t == nil             then return "&bnil" end
-    if type(t) == "boolean" then return "&b"..tostring(t) end
-    if type(t) == "string"  then return "&b\""..t.."\"" end
-    if type(t) == "number"  then return "&b"..tostring(t) end
-  
-  
+    if not prefix then prefix = BASE_PREFIX end
+
+    local res = ""
     if isClass(t) then
-        lines = sstring.split(tostring(t), "\n")
-        if #lines <= 1 then
-            return "nil" and #lines == 0 or tostring(lines[1])
-        end
-    
-        for i = 2, #lines-1 do
-            lines[i] = prefix..string.rep(" ", INDENT_SIZ).."&7⎹".." "..sstring.trim(lines[i])
-        end
-        lines[#lines] = prefix..string.rep(" ", INDENT_SIZ).."&7ᒫ".." "..sstring.trim(lines[#lines])
-    
-        return sstring.join(lines, "\n")
+        res = res..VAL_COL..TYPE_FORMAT..getmetatable(t).__class..VAL_COL..": "
+        local prev_tostring = getmetatable(t).__tostring
+        getmetatable(t).__tostring = nil
+        res = res.." "..tostring(t):sub(8)
+        getmetatable(t).__tostring = prev_tostring
+    else
+        res = res..VAL_COL..TYPE_FORMAT.."table"..VAL_COL..": "..tostring(t):sub(8)
     end
-  
-    local result = {"&e"..tostring(t).." &f{"}
+    res = res.."&f {\n"
+
     for k, v in pairs(t) do
-        local key_prefix = "&7⎹"..string.rep(" ", INDENT_SIZ-1)
-        local key_str = "&c"..k
-        local sep_str = "&f = "
-        local val_str = ttable.tostr(v, prefix..key_prefix)
-        table.insert(result, prefix..key_prefix..key_str..sep_str..val_str.."&f,")
+        res = res..prefix..KEY_COL
+        if type(k) == "boolean" then
+            res = res..tostring(k)
+        elseif type(k) == "number" then
+            res = res..tostring(k)
+        elseif type(k) == "string" then
+            res = res..sstring.showWhiteSpace(sstring.showformat(k))
+        elseif type(k) == "function" then
+            res = res..TYPE_FORMAT.."function"..KEY_COL..": "..tostring(v):gsub(".*\\macros\\", "")
+        elseif isClass(k) then
+            res = res..TYPE_FORMAT..getmetatable(k).__class..KEY_COL..": "
+            local prev_tostring = getmetatable(k).__tostring
+            getmetatable(k).__tostring = nil
+            res = res..tostring(k):sub(8)
+            getmetatable(k).__tostring = prev_tostring
+        elseif type(k) == "table" then
+            res = res..TYPE_FORMAT.."table"..KEY_COL..": "..tostring(k):sub(8)
+        end
+
+        res = res.."&f = "..VAL_COL
+
+        if type(v) == "boolean" then
+            res = res..tostring(v)
+        elseif type(v) == "number" then
+            res = res..tostring(v)
+        elseif type(v) == "string" then
+            res = res..[[&f"]]..VAL_COL..sstring.showformat(v)..[[&f"]]
+            if #v ~= #sstring.showformat(v) then
+                res = res..[[ = "]]..v..[[&f"]]
+            end
+        elseif type(v) == "function" then
+            res = res..TYPE_FORMAT.."function"..VAL_COL..": "..tostring(v):gsub(".*\\macros\\", "")
+        elseif type(v) == "table" then
+            res = res..ttable.tostr(v, prefix..BASE_PREFIX)
+        end
+        res = res.."\n&f"
     end
-    result[#result] = result[#result]:sub(1, #(result[#result])-1)
-    result[#result+1] = prefix.."&f}"
-    result = sstring.join(result, "\n")
-    return result
+
+    prefix = prefix:sub(1, #prefix-#BASE_PREFIX)
+    return res..prefix.."}"
+
 end
 
-local function stringTest()
-    ar = {10, 20, 30}
-    br = {a="bonk", b=5, c={10, 20, 30}, d=false, e=Ray:new{Vec3:new{0, 0, 0}, Vec3:new{1, 2, 3}}}
-    cr = {a="bonk", d=ar}
-    
-    log(ttable.tostr(ar))
-    log(ttable.tostr(br))
-    log(ttable.tostr(cr))
-end
 
 return ttable
 

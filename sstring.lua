@@ -1,6 +1,7 @@
 
 sstring = {}
 
+-- split string `str` into array of strings at seperator `sep`
 function sstring.split(str, sep)
   if sep == nil then
     sep = "%s"
@@ -12,6 +13,7 @@ function sstring.split(str, sep)
   return atoms
 end
 
+-- join array of strings àrr` with seperator `sep` to string (faster then string.joinTable for arrays)
 function sstring.join(arr, sep)
   local res = ""
   for _, atom in ipairs(arr) do
@@ -20,29 +22,41 @@ function sstring.join(arr, sep)
   return res:sub(1, #res-#sep)
 end
 
-function sstring.setChar(str, i, rep)
-  return str:sub(1, i-1)..rep..str:sub(i+1, #str)
-end
-
-function sstring.deformat(input)
-  new_str = ""
-  for i = 1, #input do
-    char = input:sub(i, i)
-    if char == "&" then
-      input = input:sub(1, i-1)..input:sub(i+1, #input)
-      goto continue
-    elseif string.byte(char) == 194 then
-      input = input:sub(1, i-1)..input:sub(i+2, #input)
-      goto continue
-    else
-      new_str = new_str..char
-    end
-    ::continue::
+-- join any table (keys must not be 1, 2, ...N) `arr` with seperator `sep` to string
+function sstring.joinTable(arr, sep)
+  local res = ""
+  for _, atom in pairs(arr) do
+    res = res..atom..sep
   end
-  return new_str
+  return res:sub(1, #res-#sep)
 end
 
+-- set char `i`of string `str` to character `char`
+function sstring.setChar(str, i, char)
+  return str:sub(1, i-1)..char..str:sub(i+1, #str)
+end
+
+-- replace "&x" with "" for all chars x not equal to "&"
+function sstring.deformat(s)
+  s, _ = s:gsub("&&", "²²"):gsub("&.", ""):gsub("²²", "&&")
+  return s
+end
+
+-- replace whitespace characters with "\t" character which is shown when logged
+function sstring.showWhiteSpace(s)
+  s, _ = s:gsub("%s", "\t")
+  return s
+end
+
+-- insert NULL chars after every "&" in string so the string is not formatted when printed
+function sstring.showformat(s)
+  s, _ = s:gsub("&", "&&"..string.char(0))
+  return s
+end
+
+-- trim whitespace from front and end of string
 function sstring.trim (str)
+  -- SOURCE: https://stackoverflow.com/users/7875310/alexander-shostak
   if str == "" then
     return str
   else  
